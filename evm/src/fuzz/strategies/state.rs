@@ -8,7 +8,8 @@ use ethers::{
 use proptest::prelude::{BoxedStrategy, Strategy};
 use revm::{
     db::{CacheDB, DatabaseRef},
-    opcode, spec_opcode_gas, SpecId,
+    opcode::{self, OpType},
+    spec_opcode_gas, SpecId,
 };
 use std::{cell::RefCell, collections::HashSet, io::Write, rc::Rc};
 
@@ -119,7 +120,7 @@ fn collect_push_bytes(code: Bytes) -> Vec<[u8; 32]> {
     let mut i = 0;
     while i < code.len().min(PUSH_BYTE_ANALYSIS_LIMIT) {
         let op = code[i];
-        if opcode_infos[op as usize].is_push {
+        if matches!(opcode_infos[op as usize].optype, OpType::Push) {
             let push_size = (op - opcode::PUSH1 + 1) as usize;
             let push_start = i + 1;
             let push_end = push_start + push_size;

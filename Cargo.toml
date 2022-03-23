@@ -28,6 +28,14 @@ panic = "abort"
 # We end up stripping away these symbols anyway
 debug = 0
 
+[profile.release-debug]
+inherits = "release"
+debug = 2
+strip = false
+
+[patch."https://github.com/bluealloy/revm"]
+revm = { path = "../../bluealloy/revm/crates/revm" }
+
 ## Patch ethers-rs with a local checkout then run `cargo update -p ethers`
 #[patch."https://github.com/gakonst/ethers-rs"]
 #ethers = { path = "../ethers-rs" }

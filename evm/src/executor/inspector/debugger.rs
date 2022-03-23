@@ -8,8 +8,9 @@ use crate::{
 use bytes::Bytes;
 use ethers::types::Address;
 use revm::{
-    opcode, spec_opcode_gas, CallInputs, CreateInputs, Database, EVMData, Gas, Inspector,
-    Interpreter, Memory, Return, SpecId,
+    opcode::{self, OpType},
+    spec_opcode_gas, CallInputs, CreateInputs, Database, EVMData, Gas, Inspector, Interpreter,
+    Memory, Return, SpecId,
 };
 use std::collections::BTreeMap;
 
@@ -57,7 +58,7 @@ impl Debugger {
         while i < code.len() {
             let op = code[i];
             ic_map.insert(i, i - cumulative_push_size);
-            if opcode_infos[op as usize].is_push {
+            if matches!(opcode_infos[op as usize].optype, OpType::Push) {
                 // Skip the push bytes.
                 //
                 // For more context on the math, see: https://github.com/bluealloy/revm/blob/007b8807b5ad7705d3cacce4d92b89d880a83301/crates/revm/src/interpreter/contract.rs#L114-L115
@@ -142,7 +143,10 @@ where
         let opcode_info = &opcode_infos[op as usize];
 
         // Extract the push bytes
-        let push_size = if opcode_info.is_push { (op - opcode::PUSH1 + 1) as usize } else { 0 };
+        let push_size = match opcode_info.optype {
+            OpType::Push => (op - opcode::PUSH1 + 1) as usize,
+            _ => 0,
+        };
         let push_bytes = match push_size {
             0 => None,
             n => {
@@ -155,7 +159,7 @@ where
         // Calculate the current amount of gas used
         let gas = interpreter.gas();
         let total_gas_spent = gas.spend() - self.previous_gas_block + self.current_gas_block;
-        if opcode_info.gas_block_end {
+        if matches!(opcode_info.optype, OpType::GasBlockEnd) {
             self.previous_gas_block = interpreter.contract.gas_block(pc);
             self.current_gas_block = 0;
         } else {
